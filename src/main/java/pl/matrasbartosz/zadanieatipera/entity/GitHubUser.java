@@ -1,43 +1,46 @@
 package pl.matrasbartosz.zadanieatipera.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.util.List;
 
 public class GitHubUser {
 
-    private String userName;
-    private List<String> repositories;
-    @JsonIgnore
-    private boolean userExist;
+    private String repositoryName;
+    private String ownerLogin;
+    private List<GitHubBranch> branches;
 
-    public GitHubUser(String userName, List<String> repositories, boolean userExist) {
-        this.userName = userName;
-        this.repositories = repositories;
-        this.userExist = userExist;
+    public GitHubUser(String repositoryName, String ownerLogin, List<GitHubBranch> branches) {
+        this.repositoryName = repositoryName;
+        this.ownerLogin = ownerLogin;
+        this.branches = branches;
+
     }
 
-    public String getUserName() {
-        return userName;
+    public String getRepositoryName() {
+        return repositoryName;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setRepositoryName(String repositoryName) {
+        this.repositoryName = repositoryName;
     }
 
-    public List<String> getRepositories() {
-        return repositories;
+    public String getOwnerLogin() {
+        return ownerLogin;
     }
 
-    public void setRepositories(List<String> repositories) {
-        this.repositories = repositories;
+    public void setOwnerLogin(String ownerLogin) {
+        this.ownerLogin = ownerLogin;
     }
 
-    public boolean isUserExist() {
-        return userExist;
+    public List<GitHubBranch> getBranches() {
+        return branches;
     }
 
-    public void setUserExist(boolean userExist) {
-        this.userExist = userExist;
+    @Override
+    public String toString() {
+        return "GitHubUser{" +
+                "repositoryName='" + repositoryName + '\'' +
+                ", ownerLogin='" + ownerLogin + '\'' +
+                ", branches=" + branches +
+                '}';
     }
 }
