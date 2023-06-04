@@ -1,11 +1,13 @@
 package pl.matrasbartosz.zadanieatipera.service;
 
+import lombok.RequiredArgsConstructor;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import pl.matrasbartosz.zadanieatipera.entity.GitHubBranch;
@@ -14,87 +16,93 @@ import pl.matrasbartosz.zadanieatipera.exceptions.UsernameNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
 public class GitHubService {
 
+    public static final String IS_FORK = "fork";
+    public static final String REPOSITORY_NAME = "name";
+    public static final String REPOSITORY_OWNER = "owner";
+    public static final String REPOSITORY_LOGIN = "login";
+    public static final String BRANCH_NAME = "name";
+    public static final String BRANCH_COMMIT = "commit";
+    public static final String LAST_COMMIT_SHA = "sha";
     private final Logger logger = LoggerFactory.getLogger(GitHubService.class);
 
-    private static final String GITHUB_API_URL = "https://api.github.com";
+    @Value("${github.access.token}")
+    private String accessToken;
 
     private final WebClient webClient;
 
-    public GitHubService() {
-        this.webClient = WebClient.builder()
-                .baseUrl(GITHUB_API_URL)
-                .build();
-    }
-
+    private static final Function<String, String> toRepoUrl = ("/users/%s/repos")::formatted;
+    private static final BiFunction<String, String, String> toBranchUrl = ("/repos/%s/%s/branches")::formatted;
+    
     public List<GitHubUser> getRepositoriesByUserName(String userName) {
         List<GitHubUser> repositories = new ArrayList<>();
-        String repoUrl = "/users/" + userName + "/repos";
+        String repoUrl = toRepoUrl.apply(userName);
 
         try {
-            List<String> retrievedRepositories = webClient.get()
-                    .uri(repoUrl)
-                    .retrieve()
-                    .bodyToFlux(String.class)
-                    .collectList()
-                    .block();
+            String retrievedRepositories = getRepositoriesForUserName(repoUrl);
+            JSONArray array = new JSONArray(retrievedRepositories);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject repository = array.getJSONObject(i);
+                if (!repository.getBoolean(IS_FORK)) {
+                    String repositoryName = repository.getString(REPOSITORY_NAME);
+                    JSONObject owner = repository.getJSONObject(REPOSITORY_OWNER);
+                    String ownerName = owner.getString(REPOSITORY_LOGIN);
 
-            if(retrievedRepositories != null) {
-                JSONArray array = new JSONArray(retrievedRepositories.get(0));
-                for (int i = 0; i < array.length(); i++) {
-                    JSONObject repository = array.getJSONObject(i);
-                    if (!repository.getBoolean("fork")) {
-                        String repositoryName = repository.getString("name");
-                        JSONObject owner = repository.getJSONObject("owner");
-                        String ownerName = owner.getString("login");
-                        String branchUrl = GITHUB_API_URL +
-                                "/repos/" +
-                                ownerName +
-                                "/" +
-                                repositoryName +
-                                "/branches";
-
-                        List<GitHubBranch> branches = getBranchesForRepository(branchUrl);
-                        repositories.add(new GitHubUser(
-                                repositoryName,
-                                ownerName,
-                                branches
-                        ));
-                    }
+                    List<GitHubBranch> branches =
+                            getBranchesForRepository(toBranchUrl.apply(ownerName, repositoryName));
+                    repositories.add(new GitHubUser(
+                            repositoryName,
+                            ownerName,
+                            branches
+                    ));
                 }
             }
-
-            logger.info("Retrieving repositories {} for user {} from url {}{}", repositories, userName, GITHUB_API_URL, repoUrl);
+            logger.info("Retrieving repositories {} for user {} from url {}", repositories, userName, repoUrl);
             return repositories;
         } catch (WebClientResponseException.NotFound ex) {
-            logger.info("User not found {} - {}", userName, GITHUB_API_URL + repoUrl);
+            logger.info("User not found {} - {}", userName, repoUrl);
             throw new UsernameNotFoundException("User not exist");
         }
     }
 
+    public String getRepositoriesForUserName(String repoUrl) {
+        return webClient.get()
+                .uri(repoUrl)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+    }
+
     public List<GitHubBranch> getBranchesForRepository(String branchesURL) {
         List<GitHubBranch> branches = new ArrayList<>();
-        List<String> retrievedBranches = webClient.get()
-                .uri(branchesURL)
-                .retrieve()
-                .bodyToFlux(String.class)
-                .collectList()
-                .block();
-        if(retrievedBranches != null) {
-            JSONArray array = new JSONArray(retrievedBranches.get(0));
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject branch = array.getJSONObject(i);
-                String branchName = branch.getString("name");
-                JSONObject commit = branch.getJSONObject("commit");
-                String commitSha = commit.getString("sha");
-                branches.add(new GitHubBranch(branchName, commitSha));
-            }
+        String retrievedBranches = retrieveBranches(branchesURL);
+
+        JSONArray array = new JSONArray(retrievedBranches);
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject branch = array.getJSONObject(i);
+            String branchName = branch.getString(BRANCH_NAME);
+            JSONObject commit = branch.getJSONObject(BRANCH_COMMIT);
+            String commitSha = commit.getString(LAST_COMMIT_SHA);
+            branches.add(new GitHubBranch(branchName, commitSha));
         }
 
         return branches;
+    }
+
+    private String retrieveBranches(String branchesUrl) {
+        return webClient.get()
+                .uri(branchesUrl)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
     }
 
 }

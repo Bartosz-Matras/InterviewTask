@@ -3,13 +3,11 @@ package pl.matrasbartosz.zadanieatipera.controller;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.bind.annotation.*;
-import pl.matrasbartosz.zadanieatipera.entity.GitHubResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import pl.matrasbartosz.zadanieatipera.entity.GitHubUser;
-import pl.matrasbartosz.zadanieatipera.exceptions.UsernameNotFoundException;
 import pl.matrasbartosz.zadanieatipera.service.GitHubService;
 
 import java.util.List;
@@ -31,15 +29,4 @@ public class GitHubController {
         return this.gitHubService.getRepositoriesByUserName(userName);
     }
 
-    @ExceptionHandler(UsernameNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public GitHubResponse handleUsernameNotExistsException(UsernameNotFoundException e) {
-        return new GitHubResponse(HttpStatus.NOT_FOUND.value(), e.getMessage());
-    }
-
-    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
-    @ResponseStatus(HttpStatus.NOT_ACCEPTABLE)
-    public GitHubResponse handleInvalidContentTypeException(HttpMediaTypeNotAcceptableException e) {
-        return new GitHubResponse(HttpStatus.NOT_ACCEPTABLE.value(), e.getMessage());
-    }
 }
