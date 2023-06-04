@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pl.matrasbartosz.zadanieatipera.entity.GitHubUser;
+import pl.matrasbartosz.zadanieatipera.entity.Owner;
+import pl.matrasbartosz.zadanieatipera.entity.RepositoryResponse;
 import pl.matrasbartosz.zadanieatipera.service.GitHubService;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public class GitHubController {
     private final GitHubService gitHubService;
 
     @GetMapping(value = "/repositories/{userName}", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
-    public List<GitHubUser> getUserRepositories(@PathVariable String userName) {
+    public List<RepositoryResponse> getUserRepositories(@PathVariable String userName) {
         logger.info("Request to get all repositories for user: {}", userName);
         return this.gitHubService.getRepositoriesByUserName(userName);
     }

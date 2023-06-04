@@ -1,7 +1,5 @@
 package pl.matrasbartosz.zadanieatipera.controller;
 
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,7 +7,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
-import pl.matrasbartosz.zadanieatipera.entity.GitHubUser;
+import pl.matrasbartosz.zadanieatipera.entity.RepositoryResponse;
 
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +35,7 @@ class GitHubControllerTest {
                 this.testRestTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
         //then
         assertThat(forEntity.getStatusCode(), is(HttpStatus.NOT_FOUND));
-        assertThat(forEntity.getBody(), equalTo("{\"status\":404,\"message\":\"User not exist\"}"));
+        assertThat(forEntity.getBody(), equalTo("{\"status\":404,\"message\":\"User does not exist\"}"));
     }
 
     @Test
@@ -61,16 +59,15 @@ class GitHubControllerTest {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
         //when
-        ResponseEntity<List<GitHubUser>> forEntity =
+        ResponseEntity<List<RepositoryResponse>> forEntity =
                 this.testRestTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), new ParameterizedTypeReference<>() {});
         //then
         assertThat(forEntity.getStatusCode(), is(HttpStatus.OK));
         assertThat(Objects.requireNonNull(forEntity.getBody()).size(), equalTo(16));
-        assertThat(forEntity.getBody().get(0).repositoryName(), equalTo("AdventureDemo"));
-        assertThat(forEntity.getBody().get(0).ownerLogin(), equalTo("Bartosz-Matras"));
-        assertThat(forEntity.getBody().get(0).branches().get(0).branchName(), equalTo("main"));
-        assertThat(forEntity.getBody().get(0).branches().get(0).lastCommitSha(), equalTo("fbb30458d30cf0af054ba0fec6a6edbdd76d8adf"));
-
+        assertThat(forEntity.getBody().get(0).repository().name(), equalTo("AdventureDemo"));
+        assertThat(forEntity.getBody().get(0).repository().owner().login(), equalTo("Bartosz-Matras"));
+        assertThat(forEntity.getBody().get(0).branch().get(0).name(), equalTo("main"));
+        assertThat(forEntity.getBody().get(0).branch().get(0).commit().sha(), equalTo("fbb30458d30cf0af054ba0fec6a6edbdd76d8adf"));
     }
 
 }
